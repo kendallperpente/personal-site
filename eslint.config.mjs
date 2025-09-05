@@ -14,10 +14,13 @@ const eslintConfig = [
   {
     rules: {
       "react/no-unescaped-entities": "off",
+      "@typescript-eslint/no-unused-vars": "warn",
+      "react-hooks/exhaustive-deps": "warn"
     },
     ignores: [
       "node_modules/**",
       ".next/**",
+      ".open-next/**", 
       "out/**",
       "build/**",
       "next-env.d.ts",
