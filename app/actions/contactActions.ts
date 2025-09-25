@@ -130,8 +130,12 @@ export async function submitContactForm(
     }
 
     // Verify Turnstile token with Cloudflare
-    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
-    if (turnstileSecret && process.env.NODE_ENV !== 'development') {
+    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY || '1x0000000000000000000000000000000AA';
+    
+    // Skip Turnstile verification in development or use test keys
+    if (process.env.NODE_ENV === 'development' || turnstileSecret === '1x0000000000000000000000000000000AA') {
+      console.log('Using development mode - Turnstile verification bypassed');
+    } else {
       try {
         const turnstileResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
           method: 'POST',
@@ -150,6 +154,7 @@ export async function submitContactForm(
         };
         
         if (!turnstileResult.success) {
+          console.error('Turnstile verification failed:', turnstileResult['error-codes']);
           return {
             success: false,
             message: 'Security verification failed. Please try again.',

@@ -7,7 +7,7 @@ import ContactValidator from '../utils/contactValidator';
 import Turnstile from './Turnstile';
 
 // Environment variables for Turnstile
-const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || 'your-site-key-here';
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA';
 
 // DRY Principle: Form field configuration
 const FORM_FIELDS: FormField[] = [
@@ -158,16 +158,19 @@ export default function ContactForm() {
 
   // Turnstile handlers
   const handleTurnstileVerify = (token: string) => {
+    console.log('Turnstile verified:', token ? 'Success' : 'Failed');
     setTurnstileToken(token);
     setTurnstileError('');
   };
 
   const handleTurnstileError = () => {
+    console.warn('Turnstile error occurred');
     setTurnstileToken('');
     setTurnstileError('Security verification failed. Please try again.');
   };
 
   const handleTurnstileExpire = () => {
+    console.warn('Turnstile token expired');
     setTurnstileToken('');
     setTurnstileError('Security verification expired. Please verify again.');
   };
