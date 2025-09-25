@@ -27,58 +27,63 @@ function getDiscordWebhookUrl(): string | null {
 function getDatabase(): D1Database {
   console.log('🔍 Getting database connection...');
   
-  // First, try to get the database from the request context (Cloudflare Pages/Workers)
+  // For Cloudflare Pages, the database binding should be available via the request context
+  // But since we're in a server action, we need to access it differently
+  
   try {
-    // Method 1: Direct global access (Workers/Pages runtime)
+    // Method 1: Check if running in Cloudflare Pages environment
     if (typeof globalThis !== 'undefined') {
-      const globalEnv = (globalThis as any)?.env || (globalThis as any)?.process?.env || globalThis;
+      // Try accessing the database from various possible locations
+      const possibleDBs = [
+        (globalThis as any)?.process?.env?.DB,
+        (globalThis as any)?.cloudflare?.env?.DB,
+        (globalThis as any)?.env?.DB,
+        (globalThis as any)?.DB,
+        (process as any)?.env?.DB,
+      ];
       
-      if (globalEnv?.DB) {
-        console.log('✅ Found DB in globalThis.env.DB');
-        return globalEnv.DB;
-      }
-      
-      if ((globalThis as any)?.DB) {
-        console.log('✅ Found DB in globalThis.DB');
-        return (globalThis as any).DB;
+      for (let i = 0; i < possibleDBs.length; i++) {
+        const db = possibleDBs[i];
+        if (db && typeof db === 'object' && db.prepare) {
+          console.log(`✅ Found working D1 database at location ${i + 1}`);
+          return db;
+        }
       }
     }
     
-    // Method 2: Process environment (Pages integration)
-    if (process.env.CF_PAGES || process.env.CLOUDFLARE_PAGES) {
-      const envDB = (process as any)?.env?.DB;
-      if (envDB) {
-        console.log('✅ Found DB in process.env.DB');
-        return envDB;
-      }
-    }
-    
-    // Method 3: Check for platform-specific environment
-    const platformEnv = (globalThis as any)?.cloudflare?.env || (globalThis as any)?.env;
-    if (platformEnv?.DB) {
-      console.log('✅ Found DB in platform environment');
-      return platformEnv.DB;
-    }
-    
-    console.log('🔍 Database binding not found in any environment');
-    console.log('Available globals:', Object.keys(globalThis).filter(k => k.includes('DB') || k.includes('env')));
+    console.log('🔍 No direct database binding found, checking environment...');
     
   } catch (error) {
     console.error('Error accessing database environment:', error);
   }
   
-  // Check if we should force production behavior
-  const isCloudflare = process.env.CF_PAGES === 'true' || 
-                      process.env.CLOUDFLARE_PAGES === 'true' ||
-                      typeof (globalThis as any)?.caches !== 'undefined' ||
-                      typeof (globalThis as any)?.crypto?.subtle !== 'undefined';
+  // If we're in Cloudflare but can't find the database, this is a configuration issue
+  const isCloudflare = typeof (globalThis as any)?.caches !== 'undefined' ||
+                      typeof (globalThis as any)?.crypto?.subtle !== 'undefined' ||
+                      process.env.CF_PAGES === 'true';
   
   if (isCloudflare) {
-    console.error('🚨 Running in Cloudflare environment but no database connection found!');
-    console.error('This suggests a configuration issue with the D1 database binding.');
-    // Return mock with error logging for now - don't break the entire app
-    console.warn('⚠️ Falling back to mock database due to binding issue');
-    return createMockDatabase();
+    console.error('🚨 Running in Cloudflare environment but no D1 database binding found!');
+    console.error('This means the D1 database is not properly bound to this Pages project.');
+    console.error('Please configure the D1 binding in Cloudflare Pages dashboard.');
+    
+    // Create a failing database that will show clear errors
+    return {
+      prepare: (sql: string) => ({
+        bind: (...params: any[]) => ({
+          run: async () => {
+            console.error('❌ DATABASE NOT CONFIGURED: D1 binding missing in Cloudflare Pages');
+            console.error('The contact form data cannot be saved because the database is not connected.');
+            console.error('Please add the D1 database binding in your Cloudflare Pages project settings.');
+            return { 
+              success: false, 
+              error: 'Database not configured in Cloudflare Pages',
+              meta: {} 
+            };
+          }
+        })
+      })
+    } as any;
   }
   
   // Local development fallback
