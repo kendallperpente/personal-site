@@ -1,8 +1,16 @@
 # Environment Configuration Guide
 
-## Cloudflare Turnstile Setup
+## Required Environment Variables
+
+### Cloudflare Turnstile Setup
 
 To enable Turnstile (CAPTCHA) on your contact form, you need to set up environment variables.
+
+### Discord Webhook Integration
+
+To receive instant notifications in Discord when someone submits your contact form.
+
+## Environment Variables Setup
 
 ### 1. Get Turnstile Keys from Cloudflare
 
@@ -11,7 +19,15 @@ To enable Turnstile (CAPTCHA) on your contact form, you need to set up environme
 3. Create a new site key for your domain
 4. Copy the **Site Key** and **Secret Key**
 
-### 2. Environment Variables
+### 2. Get Discord Webhook URL
+
+1. Go to your Discord server
+2. Right-click on the channel where you want notifications
+3. Select **"Edit Channel"** → **"Integrations"** → **"Webhooks"**
+4. Click **"New Webhook"**
+5. Copy the **Webhook URL**
+
+### 3. Environment Variables
 
 Create a `.env.local` file in your project root:
 
@@ -20,8 +36,38 @@ Create a `.env.local` file in your project root:
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=your-site-key-here
 TURNSTILE_SECRET_KEY=your-secret-key-here
 
+# Discord Webhook Configuration
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/YOUR_WEBHOOK_URL
+
 # Database Configuration (already configured in wrangler.toml)
 # DB binding is automatically available in Cloudflare Workers
+```
+
+### 4. For Cloudflare Pages Deployment
+
+Add these environment variables in your Cloudflare Pages dashboard:
+
+1. Go to **Pages** → Your Project → **Settings** → **Environment Variables**
+2. Add:
+   - `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (Production)
+   - `TURNSTILE_SECRET_KEY` (Production) 
+   - `DISCORD_WEBHOOK_URL` (Production)
+
+### 5. For Wrangler (Local Development)
+
+Add to your `wrangler.toml`:
+
+```toml
+[vars]
+TURNSTILE_SECRET_KEY = "your-secret-key-here"
+DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/YOUR_WEBHOOK_URL"
+```
+
+Or use wrangler secrets for production:
+
+```bash
+npx wrangler secret put TURNSTILE_SECRET_KEY
+npx wrangler secret put DISCORD_WEBHOOK_URL
 ```
 
 ### 3. Development vs Production

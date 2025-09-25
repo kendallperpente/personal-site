@@ -3,6 +3,26 @@
 import { ContactFormData, ContactSubmissionResponse } from '../types/contact';
 import ContactValidator from '../utils/contactValidator';
 
+// Function to get Discord webhook URL from environment
+function getDiscordWebhookUrl(): string | null {
+  try {
+    // Check environment variable
+    if (process.env.DISCORD_WEBHOOK_URL) {
+      return process.env.DISCORD_WEBHOOK_URL;
+    }
+
+    // Try to access from CloudflareEnv context
+    const globalEnv = (globalThis as { env?: CloudflareEnv }).env;
+    if (typeof globalEnv !== 'undefined' && globalEnv.DISCORD_WEBHOOK_URL) {
+      return globalEnv.DISCORD_WEBHOOK_URL;
+    }
+  } catch (error) {
+    console.warn('Could not access Discord webhook URL from environment:', error);
+  }
+  
+  return null;
+}
+
 // Function to get database binding from Cloudflare environment
 function getDatabase(): D1Database {
   // In production (Cloudflare Workers), try to access from runtime context
@@ -104,6 +124,77 @@ class ContactRepository {
   }
 }
 
+// Discord notification service
+class DiscordNotificationService {
+  static async sendContactNotification(data: ContactFormData): Promise<void> {
+    const webhookUrl = getDiscordWebhookUrl();
+    
+    if (!webhookUrl) {
+      console.warn('Discord webhook URL not configured');
+      return;
+    }
+
+    try {
+      const embed = {
+        title: "🚀 New Contact Form Submission",
+        color: 0x00D4FF, // Cyan color to match your theme
+        fields: [
+          {
+            name: "👤 Name",
+            value: data.name,
+            inline: true
+          },
+          {
+            name: "📧 Email",
+            value: data.email,
+            inline: true
+          },
+          {
+            name: "📱 Phone",
+            value: data.phone,
+            inline: true
+          },
+          {
+            name: "💬 Message",
+            value: data.description.length > 1000 
+              ? data.description.substring(0, 1000) + "..." 
+              : data.description,
+            inline: false
+          }
+        ],
+        timestamp: new Date().toISOString(),
+        footer: {
+          text: "Personal Site Contact Form"
+        }
+      };
+
+      const payload = {
+        username: "Personal Site Bot",
+        avatar_url: "https://cdn.discordapp.com/embed/avatars/0.png",
+        embeds: [embed]
+      };
+
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Discord webhook failed: ${response.status} ${response.statusText}`);
+      }
+
+      console.log('Discord notification sent successfully');
+    } catch (error) {
+      console.error('Failed to send Discord notification:', error);
+      // Don't throw error here - we don't want to fail the entire form submission
+      // if Discord notification fails
+    }
+  }
+}
+
 // Single Responsibility: Contact form business logic
 export async function submitContactForm(
   prevState: ContactSubmissionResponse | null,
@@ -183,6 +274,9 @@ export async function submitContactForm(
 
     // Save to database
     await ContactRepository.saveContact(contactData);
+
+    // Send Discord notification (non-blocking)
+    await DiscordNotificationService.sendContactNotification(contactData);
 
     return {
       success: true,
