@@ -10,7 +10,16 @@
     "lint": "eslint",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "db:init": "wrangler d1 execute contact-us-personal-site --file=./database/schema.sql",
+    "db:local-init": "wrangler d1 execute contact-us-personal-site --local --file=./database/schema.sql",
+    "db:query": "wrangler d1 execute contact-us-personal-site --command",
+    "db:local-query": "wrangler d1 execute contact-us-personal-site --local --command",
+    "migrate": "node database/migrate.js",
+    "migrate:status": "node database/migrate.js --status",
+    "migrate:local": "node database/migrate.js --local",
+    "migrate:prod": "node database/migrate.js --prod",
+    "migrate:help": "node database/migrate.js --help"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.8.0",
