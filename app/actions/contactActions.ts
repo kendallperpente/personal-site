@@ -129,12 +129,16 @@ class DiscordNotificationService {
   static async sendContactNotification(data: ContactFormData): Promise<void> {
     const webhookUrl = getDiscordWebhookUrl();
     
+    console.log('Discord webhook URL:', webhookUrl ? 'Found' : 'Not found');
+    
     if (!webhookUrl) {
-      console.warn('Discord webhook URL not configured');
+      console.warn('Discord webhook URL not configured - skipping Discord notification');
       return;
     }
 
     try {
+      console.log('Sending Discord notification for contact:', data.name);
+      
       const embed = {
         title: "🚀 New Contact Form Submission",
         color: 0x00D4FF, // Cyan color to match your theme
@@ -174,6 +178,8 @@ class DiscordNotificationService {
         embeds: [embed]
       };
 
+      console.log('Sending Discord webhook request...');
+      
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
@@ -182,7 +188,11 @@ class DiscordNotificationService {
         body: JSON.stringify(payload)
       });
 
+      console.log('Discord webhook response status:', response.status);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Discord webhook error response:', errorText);
         throw new Error(`Discord webhook failed: ${response.status} ${response.statusText}`);
       }
 
