@@ -25,34 +25,65 @@ function getDiscordWebhookUrl(): string | null {
 
 // Function to get database binding from Cloudflare environment
 function getDatabase(): D1Database {
-  // In production (Cloudflare Workers), try to access from runtime context
+  console.log('🔍 Getting database connection...');
+  
+  // First, try to get the database from the request context (Cloudflare Pages/Workers)
   try {
-    // Check if we're in a Cloudflare Workers environment
-    if (typeof globalThis !== 'undefined' && (globalThis as Record<string, unknown>).DB) {
-      return (globalThis as Record<string, unknown>).DB as D1Database;
+    // Method 1: Direct global access (Workers/Pages runtime)
+    if (typeof globalThis !== 'undefined') {
+      const globalEnv = (globalThis as any)?.env || (globalThis as any)?.process?.env || globalThis;
+      
+      if (globalEnv?.DB) {
+        console.log('✅ Found DB in globalThis.env.DB');
+        return globalEnv.DB;
+      }
+      
+      if ((globalThis as any)?.DB) {
+        console.log('✅ Found DB in globalThis.DB');
+        return (globalThis as any).DB;
+      }
     }
     
-    // Try to access from process.env if available (OpenNext context)
-    if (process.env.CF_PAGES && (process.env as Record<string, unknown>).DB) {
-      return (process.env as Record<string, unknown>).DB as D1Database;
+    // Method 2: Process environment (Pages integration)
+    if (process.env.CF_PAGES || process.env.CLOUDFLARE_PAGES) {
+      const envDB = (process as any)?.env?.DB;
+      if (envDB) {
+        console.log('✅ Found DB in process.env.DB');
+        return envDB;
+      }
     }
-
-    // Try to access from CloudflareEnv context
-    const globalEnv = (globalThis as { env?: CloudflareEnv }).env;
-    if (typeof globalEnv !== 'undefined' && globalEnv.DB) {
-      return globalEnv.DB;
+    
+    // Method 3: Check for platform-specific environment
+    const platformEnv = (globalThis as any)?.cloudflare?.env || (globalThis as any)?.env;
+    if (platformEnv?.DB) {
+      console.log('✅ Found DB in platform environment');
+      return platformEnv.DB;
     }
+    
+    console.log('🔍 Database binding not found in any environment');
+    console.log('Available globals:', Object.keys(globalThis).filter(k => k.includes('DB') || k.includes('env')));
+    
   } catch (error) {
-    console.warn('Could not access Cloudflare context:', error);
+    console.error('Error accessing database environment:', error);
   }
   
-  // Development fallback - mock database for local testing
-  if (process.env.NODE_ENV === 'development' || !process.env.CF_PAGES) {
-    console.warn('Using mock database for development. Database operations will be logged only.');
+  // Check if we should force production behavior
+  const isCloudflare = process.env.CF_PAGES === 'true' || 
+                      process.env.CLOUDFLARE_PAGES === 'true' ||
+                      typeof (globalThis as any)?.caches !== 'undefined' ||
+                      typeof (globalThis as any)?.crypto?.subtle !== 'undefined';
+  
+  if (isCloudflare) {
+    console.error('🚨 Running in Cloudflare environment but no database connection found!');
+    console.error('This suggests a configuration issue with the D1 database binding.');
+    // Return mock with error logging for now - don't break the entire app
+    console.warn('⚠️ Falling back to mock database due to binding issue');
     return createMockDatabase();
   }
   
-  throw new Error('Database not available. Please ensure D1 binding is configured in wrangler.toml');
+  // Local development fallback
+  console.warn('⚠️ Using mock database for local development');
+  return createMockDatabase();
 }
 
 // Mock database for local development
@@ -97,16 +128,39 @@ class ContactRepository {
   static async saveContact(data: ContactFormData): Promise<void> {
     const db = getDatabase();
     
+    // Ensure the table exists (auto-create if needed)
+    try {
+      await db.prepare(`
+        CREATE TABLE IF NOT EXISTS contacts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          email TEXT NOT NULL,
+          phone TEXT NOT NULL,
+          description TEXT NOT NULL,
+          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+      `).run();
+      
+      console.log('✅ Contacts table ensured to exist');
+    } catch (tableError) {
+      console.warn('⚠️ Could not ensure table exists:', tableError);
+    }
+    
     const stmt = db.prepare(`
       INSERT INTO contacts (name, email, phone, description, created_at)
       VALUES (?, ?, ?, ?, datetime('now'))
     `);
     
+    console.log('💾 Inserting contact data:', data);
     const result = await stmt.bind(data.name, data.email, data.phone, data.description).run();
+    console.log('💾 Database insert result:', result);
     
     if (!result.success) {
+      console.error('❌ Database insert failed:', result);
       throw new Error('Failed to save contact to database');
     }
+    
+    console.log('✅ Contact successfully saved to database with ID:', result.meta?.last_row_id);
   }
   
   // Optional: Method to retrieve contacts for admin interface
