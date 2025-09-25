@@ -10,4 +10,4 @@ binding = "ASSETS"
 [[d1_databases]]
 binding = "DB"
 database_name = "contact-us-personal-site"
-database_id = "your-database-id-here"
+database_id = "59fd9243-14b4-4f0a-9cb8-a1960f605642"

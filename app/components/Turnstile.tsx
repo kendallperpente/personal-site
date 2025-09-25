@@ -102,7 +102,7 @@ export default function Turnstile({
       console.error('Failed to render Turnstile widget:', error);
       onError?.();
     }
-  }, [isLoaded, siteKey, onVerify, onError, onExpire, onTimeout, theme, size]);
+  }, [isLoaded, siteKey, onVerify, onError, onExpire, onTimeout, theme, size, widgetId]);
 
   // Cleanup
   useEffect(() => {
@@ -116,21 +116,6 @@ export default function Turnstile({
       }
     };
   }, [widgetId]);
-
-  // Reset widget method
-  const reset = () => {
-    if (widgetId && window.turnstile) {
-      window.turnstile.reset(widgetId);
-    }
-  };
-
-  // Get response method
-  const getResponse = () => {
-    if (widgetId && window.turnstile) {
-      return window.turnstile.getResponse(widgetId);
-    }
-    return '';
-  };
 
   return (
     <div className={className}>

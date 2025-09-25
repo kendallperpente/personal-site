@@ -18,8 +18,9 @@ function getDatabase(): D1Database {
     }
 
     // Try to access from CloudflareEnv context
-    if (typeof (globalThis as any).env !== 'undefined' && (globalThis as any).env.DB) {
-      return (globalThis as any).env.DB;
+    const globalEnv = (globalThis as { env?: CloudflareEnv }).env;
+    if (typeof globalEnv !== 'undefined' && globalEnv.DB) {
+      return globalEnv.DB;
     }
   } catch (error) {
     console.warn('Could not access Cloudflare context:', error);
