@@ -211,6 +211,8 @@ export async function submitContactForm(
   formData: FormData
 ): Promise<ContactSubmissionResponse> {
   try {
+    console.log('🚀 Contact form submission started');
+    
     // Extract and sanitize form data
     const contactData: ContactFormData = {
       name: String(formData.get('name') || '').trim(),
@@ -273,8 +275,10 @@ export async function submitContactForm(
     }
 
     // Validate input data
+    console.log('📝 Validating contact data:', contactData);
     const validation = ContactValidator.validate(contactData);
     if (!validation.isValid) {
+      console.log('❌ Validation failed:', validation.errors);
       return {
         success: false,
         message: 'Please fix the validation errors',
@@ -283,11 +287,15 @@ export async function submitContactForm(
     }
 
     // Save to database
+    console.log('💾 Saving contact to database...');
     await ContactRepository.saveContact(contactData);
+    console.log('✅ Contact saved to database successfully');
 
     // Send Discord notification (non-blocking)
+    console.log('📨 Sending Discord notification...');
     await DiscordNotificationService.sendContactNotification(contactData);
 
+    console.log('🎉 Contact form submission completed successfully');
     return {
       success: true,
       message: 'Thank you for your message! We will get back to you soon.'
