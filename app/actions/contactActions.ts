@@ -292,11 +292,11 @@ export async function submitContactForm(
     }
 
     // Verify Turnstile token with Cloudflare
-    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY || '1x0000000000000000000000000000000AA';
+    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY || '0x4AAAAAAB3-OwPYjYL7hK3U8d26XvhdF8w';
     
-    // Skip Turnstile verification in development or use test keys
-    if (process.env.NODE_ENV === 'development' || turnstileSecret === '1x0000000000000000000000000000000AA') {
-      console.log('Using development mode - Turnstile verification bypassed');
+    // Skip Turnstile verification only in local development
+    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+      console.log('Using local development mode - Turnstile verification bypassed');
     } else {
       try {
         const turnstileResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {

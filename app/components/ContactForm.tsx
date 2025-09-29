@@ -7,7 +7,7 @@ import ContactValidator from '../utils/contactValidator';
 import Turnstile from './Turnstile';
 
 // Environment variables for Turnstile
-const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA';
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '0x4AAAAAAB3-O_nSQXC3e5Uu';
 
 // DRY Principle: Form field configuration
 const FORM_FIELDS: FormField[] = [

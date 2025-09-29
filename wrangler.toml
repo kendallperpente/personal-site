@@ -14,6 +14,6 @@ database_id = "59fd9243-14b4-4f0a-9cb8-a1960f605642"
 
 [vars]
 DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1420858430486347827/9abrx8-ImkXY1heRloZ8QxtNoDlKJvPBGf-is5kOpXaqpujK60txO3qbFwXnVz32nk6v"
-# Add your real Turnstile keys here:
-# NEXT_PUBLIC_TURNSTILE_SITE_KEY = "your-actual-site-key"
-# TURNSTILE_SECRET_KEY = "your-actual-secret-key"
+# Real Turnstile managed mode keys:
+NEXT_PUBLIC_TURNSTILE_SITE_KEY = "0x4AAAAAAB3-O_nSQXC3e5Uu"
+TURNSTILE_SECRET_KEY = "0x4AAAAAAB3-OwPYjYL7hK3U8d26XvhdF8w"
